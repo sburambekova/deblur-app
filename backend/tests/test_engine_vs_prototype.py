@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from app.engine import color, fourier, operators
+from app.engine import color, fourier, kernels, operators
 from tests.helpers import blurred_case, load_test_image
 from tests.reference import real_deblur_prototype as rd
 
@@ -43,3 +43,26 @@ def test_gradient():
         assert same(new, old)
     assert same(operators.grad_t(vx, vy), rd.grad_t(vx, vy))
     assert same(operators.grad_spectrum(x.shape), rd.penalty_spectrum(x.shape, "H1"))
+
+
+def test_motion_kernel():
+    for length in [0.5, 1, 1.5, 6, 10.2, 15, 33.3, 60]:
+        for angle in [0, 15, 30, 45, 90, 137, 180]:
+            new = kernels.motion_psf(length, angle)
+            old = rd.motion_psf(length, angle)
+            assert new.shape == old.shape and same(new, old)
+
+
+def test_defocus_kernel():
+    for radius in [0.5, 1, 2.5, 3, 5, 12.3, 25]:
+        new = kernels.defocus_psf(radius)
+        old = rd.defocus_psf(radius)
+        assert new.shape == old.shape and same(new, old)
+
+
+def test_make_psf():
+    for p in [
+        {"kernel": "motion", "length": 15, "angle": 30, "radius": 3},
+        {"kernel": "defocus", "length": 15, "angle": 30, "radius": 5},
+    ]:
+        assert same(kernels.make_psf(**p), rd.make_psf(p))
