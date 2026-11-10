@@ -1,0 +1,6 @@
+.DS_Store
+.idea/
+.vscode/
+
+# Markdown files stay local for now
+*.md
