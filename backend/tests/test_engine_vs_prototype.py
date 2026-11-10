@@ -3,6 +3,7 @@
 import numpy as np
 
 from app.engine import color, fourier, kernels, operators
+from app.engine.methods.tikhonov import tikhonov
 from tests.helpers import blurred_case, load_test_image
 from tests.reference import real_deblur_prototype as rd
 
@@ -66,3 +67,12 @@ def test_make_psf():
         {"kernel": "defocus", "length": 15, "angle": 30, "radius": 5},
     ]:
         assert same(kernels.make_psf(**p), rd.make_psf(p))
+
+
+def test_tikhonov():
+    img = np.random.default_rng(0).random((64, 48))
+    for psf in [rd.motion_psf(15, 30), rd.defocus_psf(5)]:
+        for mu in [1e-6, 0.01, 0.1]:
+            for penalty in ["L2", "H1"]:
+                new = tikhonov(img, psf, mu, penalty)
+                assert same(new, rd.deconvolve(img, psf, mu, penalty))

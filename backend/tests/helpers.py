@@ -1,9 +1,12 @@
 """Test helpers: PSNR and synthetic blurred images with a known kernel."""
 
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
+
+from app.engine.color import linear_to_srgb, srgb_to_linear
 
 # Until the new engine exists (phase 2), blurring goes through the prototype.
 from tests.reference import real_deblur_prototype as rd
@@ -52,3 +55,12 @@ def circular_case(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Like blurred_case but without cropping: the frame stays periodic, borders do not matter."""
     return sharp, _add_noise(_blur_srgb(sharp, psf), sigma, seed)
+
+
+def restore(
+    observed: np.ndarray, method: Callable[..., np.ndarray], psf: np.ndarray, **params
+) -> np.ndarray:
+    """Apply a one-channel method to an sRGB image in linear light, without border handling."""
+    lin = srgb_to_linear(observed)
+    out = np.stack([method(lin[..., c], psf, **params) for c in range(3)], axis=-1)
+    return linear_to_srgb(np.clip(out, 0, 1))
