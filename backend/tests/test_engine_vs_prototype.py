@@ -3,6 +3,7 @@
 import numpy as np
 
 from app.engine import color, fourier, kernels, operators
+from app.engine.methods.richardson_lucy import richardson_lucy
 from app.engine.methods.tikhonov import tikhonov
 from tests.helpers import blurred_case, load_test_image
 from tests.reference import real_deblur_prototype as rd
@@ -76,3 +77,12 @@ def test_tikhonov():
             for penalty in ["L2", "H1"]:
                 new = tikhonov(img, psf, mu, penalty)
                 assert same(new, rd.deconvolve(img, psf, mu, penalty))
+
+
+def test_richardson_lucy():
+    # Some values below 0, so the clipping of the input is compared too.
+    img = np.random.default_rng(0).normal(0.5, 0.3, (64, 48))
+    for psf in [rd.motion_psf(15, 30), rd.defocus_psf(5)]:
+        for iters in [1, 10, 30]:
+            new = richardson_lucy(img, psf, iters)
+            assert same(new, rd.richardson_lucy(img, psf, iters))
