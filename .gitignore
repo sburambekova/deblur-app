@@ -4,3 +4,4 @@
 
 # Markdown files stay local for now
 *.md
+!frontend/README.md
