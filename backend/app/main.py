@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import Settings
 from app.errors import ConflictError, InvalidInputError, NotFoundError
-from app.routers import health
+from app.routers import gallery, health, jobs, photos
 
 ERROR_STATUS = {NotFoundError: 404, InvalidInputError: 400, ConflictError: 409}
 
@@ -31,6 +31,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     for error in ERROR_STATUS:
         app.add_exception_handler(error, error_response)
     app.include_router(health.router, prefix="/api")
+    app.include_router(photos.router, prefix="/api")
+    app.include_router(jobs.router, prefix="/api")
+    app.include_router(gallery.router, prefix="/api")
     return app
 
 
