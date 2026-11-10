@@ -7,9 +7,7 @@ import numpy as np
 from PIL import Image
 
 from app.engine.color import linear_to_srgb, srgb_to_linear
-
-# Until the new engine exists (phase 2), blurring goes through the prototype.
-from tests.reference import real_deblur_prototype as rd
+from app.engine.fourier import convolve
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -28,9 +26,9 @@ def load_test_image() -> np.ndarray:
 
 def _blur_srgb(sharp: np.ndarray, psf: np.ndarray) -> np.ndarray:
     # Blur adds up light linearly, so it is applied in linear light, not to sRGB values.
-    lin = rd.srgb_to_linear(sharp)
-    blurred = np.stack([rd.blur(lin[..., c], psf) for c in range(3)], axis=-1)
-    return rd.linear_to_srgb(blurred)
+    lin = srgb_to_linear(sharp)
+    blurred = np.stack([convolve(lin[..., c], psf) for c in range(3)], axis=-1)
+    return linear_to_srgb(blurred)
 
 
 def _add_noise(img: np.ndarray, sigma: float, seed: int) -> np.ndarray:

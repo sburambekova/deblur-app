@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from app.engine import color, fourier, kernels, operators
+from app.engine import color, edges, fourier, kernels, operators, pipeline, spectrum
 from app.engine.methods.richardson_lucy import richardson_lucy
 from app.engine.methods.tikhonov import tikhonov
 from app.engine.methods.tv import tv
@@ -96,3 +96,45 @@ def test_tv():
             for iters in [1, 50]:
                 new = tv(img, psf, lam, iters)
                 assert same(new, rd.tv_deconvolve(img, psf, lam, iters))
+
+
+def test_edge_taper():
+    img = np.random.default_rng(0).random((64, 48))
+    for n, width in [(64, 1), (64, 15), (48, 31)]:
+        assert same(edges.taper_window(n, width), rd.taper_window(n, width))
+    for psf in [rd.motion_psf(15, 30), rd.defocus_psf(5)]:
+        assert same(edges.edge_taper(img, psf), rd.edge_taper(img, psf))
+
+
+def test_pipeline():
+    sharp = load_test_image()
+    for psf in [rd.motion_psf(15, 30), rd.defocus_psf(5)]:
+        _, observed = blurred_case(sharp, psf, sigma=0.01)
+        for method, params in [
+            ("tikhonov", {"mu": 0.02, "penalty": "L2"}),
+            ("tikhonov", {"mu": 0.01, "penalty": "H1"}),
+            ("tv", {"lam": 5e-4}),
+            ("rl", {"iters": 30}),
+        ]:
+            new = pipeline.deblur(observed, psf, method, **params)
+            # The prototype requires mu even for methods that ignore it.
+            old_params = {"mu": 0.01, **params}
+            old = rd.deblur_photo(observed, psf, edge="taper", method=method, **old_params)
+            assert same(new, old)
+
+
+def test_scale_params():
+    p = {"kernel": "motion", "length": 12.5, "angle": 30, "radius": 3.3, "method": "tv",
+         "mu": 0.013, "penalty": "L2", "lam": 7e-4, "iters": 80}  # fmt: skip
+    for penalty in ["L2", "H1"]:
+        for s in [0.5, 1, 3.125]:
+            q = dict(p, penalty=penalty)
+            assert pipeline.scale_params(q, s) == rd.scale_params(q, s)
+
+
+def test_spectrum():
+    sharp = load_test_image()
+    _, observed = blurred_case(sharp, rd.motion_psf(15, 30), sigma=0.01)
+    gray = spectrum.to_gray(observed)
+    assert same(gray, observed @ [0.299, 0.587, 0.114])
+    assert same(spectrum.log_spectrum(gray), rd.log_spectrum(gray))
