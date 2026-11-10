@@ -11,6 +11,7 @@ from app.engine.fourier import convolve
 from app.engine.kernels import defocus_psf, motion_psf
 from app.engine.methods.richardson_lucy import richardson_lucy
 from app.engine.methods.tikhonov import tikhonov
+from app.engine.methods.tv import tv
 from tests.helpers import circular_case, load_test_image, psnr, restore
 
 CASES = {"motion": motion_psf(15, 30), "defocus": defocus_psf(5)}
@@ -67,3 +68,20 @@ def test_rl_beats_tikhonov(sharp):
         tik = restore(observed, tikhonov, psf, mu=0.01, penalty="H1")
         rl = restore(observed, richardson_lucy, psf, iters=80)
         assert psnr(truth, rl) > psnr(truth, tik) + 1
+
+
+def test_tv_beats_tikhonov(sharp):
+    # sigma 0.01, lam 5e-4: motion Tikhonov 21.0, TV 23.8 dB; defocus Tikhonov 21.0, TV 23.1 dB.
+    for psf in CASES.values():
+        truth, observed = circular_case(sharp, psf, sigma=0.01)
+        tik = restore(observed, tikhonov, psf, mu=0.01, penalty="H1")
+        restored = restore(observed, tv, psf, lam=5e-4)
+        assert psnr(truth, restored) > psnr(truth, tik) + 1
+
+
+def test_tv_without_noise_gets_much_closer(sharp):
+    # lam 1e-5: motion 18.3 -> 36.1 dB, defocus 19.0 -> 31.0 dB.
+    for psf in CASES.values():
+        truth, observed = circular_case(sharp, psf, sigma=0)
+        restored = restore(observed, tv, psf, lam=1e-5)
+        assert psnr(truth, restored) > psnr(truth, observed) + 10

@@ -5,6 +5,7 @@ import numpy as np
 from app.engine import color, fourier, kernels, operators
 from app.engine.methods.richardson_lucy import richardson_lucy
 from app.engine.methods.tikhonov import tikhonov
+from app.engine.methods.tv import tv
 from tests.helpers import blurred_case, load_test_image
 from tests.reference import real_deblur_prototype as rd
 
@@ -86,3 +87,12 @@ def test_richardson_lucy():
         for iters in [1, 10, 30]:
             new = richardson_lucy(img, psf, iters)
             assert same(new, rd.richardson_lucy(img, psf, iters))
+
+
+def test_tv():
+    img = np.random.default_rng(0).random((64, 48))
+    for psf in [rd.motion_psf(15, 30), rd.defocus_psf(5)]:
+        for lam in [1e-5, 5e-4, 0.1]:
+            for iters in [1, 50]:
+                new = tv(img, psf, lam, iters)
+                assert same(new, rd.tv_deconvolve(img, psf, lam, iters))
