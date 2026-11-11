@@ -1,5 +1,6 @@
 """Files on disk: where each image lives and how numpy arrays become image files and back."""
 
+from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -46,4 +47,10 @@ class FileStorage:
 
     def write_jpeg(self, path: Path, rgb: np.ndarray, quality: int) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        Image.fromarray(to_uint8(rgb)).save(path, quality=quality)
+        path.write_bytes(self.encode_jpeg(rgb, quality))
+
+    def encode_jpeg(self, rgb: np.ndarray, quality: int) -> bytes:
+        """JPEG file contents in memory, for responses that are not stored."""
+        buf = BytesIO()
+        Image.fromarray(to_uint8(rgb)).save(buf, "JPEG", quality=quality)
+        return buf.getvalue()

@@ -1,5 +1,7 @@
-"""Photo upload: check the file, turn it into the working images, remember the photo."""
+"""Photos: upload (check the file, make the working images, remember the photo) and the live
+preview."""
 
+import time
 from datetime import UTC, datetime
 from io import BytesIO
 from uuid import uuid4
@@ -9,10 +11,11 @@ from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 
 from app.config import Settings
-from app.engine import spectrum
+from app.engine import kernels, pipeline, spectrum
 from app.errors import InvalidInputError, NotFoundError, TooLargeError
 from app.repositories.files import FileStorage
 from app.repositories.photos import PhotoRepository
+from app.schemas.params import DeblurParams
 
 # Lets Pillow open HEIC, the default photo format of iPhones.
 register_heif_opener()
@@ -20,6 +23,7 @@ register_heif_opener()
 # The largest kernel in the API is 61 px, and the engine needs the image to be larger than it.
 MIN_PREVIEW_SIDE = 64
 SPECTRUM_SIZE = 256
+PREVIEW_QUALITY = 90
 
 
 def shrink(img: Image.Image, side: int) -> Image.Image:
@@ -82,6 +86,20 @@ class PhotoService:
         if photo is None:
             raise NotFoundError("Photo not found")
         return self.with_urls(photo)
+
+    def preview(self, photo_id: str, params: DeblurParams) -> tuple[bytes, float]:
+        """Deblurred preview as JPEG and the server time it took, in ms."""
+        start = time.perf_counter()
+        if self.photos.get(photo_id) is None:
+            raise NotFoundError("Photo not found")
+        p = params.model_dump()
+        rgb = self.storage.read_rgb(self.storage.preview_path(photo_id))
+        psf = kernels.make_psf(p["kernel"], p["length"], p["angle"], p["radius"])
+        # Always Tikhonov, whatever p["method"] is: TV and R-L take about a second on the
+        # preview, too slow to follow a slider. They are for the full-size render.
+        out = pipeline.deblur(rgb, psf, "tikhonov", mu=p["mu"], penalty=p["penalty"])
+        jpeg = self.storage.encode_jpeg(out, PREVIEW_QUALITY)
+        return jpeg, (time.perf_counter() - start) * 1000
 
     def with_urls(self, photo: dict) -> dict:
         url = self.storage.url_for

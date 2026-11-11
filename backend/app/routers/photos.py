@@ -31,10 +31,11 @@ def get_photo(photo_id: str, service: Photos) -> PhotoOut:
     response_class=Response,
     responses={200: {"content": {"image/jpeg": {}}}},
     description="Fast JPEG preview at preview size. Always uses Tikhonov, whatever `method` is: "
-    "TV and R-L are too slow to follow a slider.",
+    "TV and R-L are too slow to follow a slider. The `X-Compute-Ms` header gives the server time.",
 )
-def preview_photo(photo_id: str, params: DeblurParams) -> Response:
-    raise HTTPException(501, "Not implemented yet")
+def preview_photo(photo_id: str, params: DeblurParams, service: Photos) -> Response:
+    jpeg, ms = service.preview(photo_id, params)
+    return Response(content=jpeg, media_type="image/jpeg", headers={"X-Compute-Ms": f"{ms:.1f}"})
 
 
 @router.post("/{photo_id}/render", status_code=202)
