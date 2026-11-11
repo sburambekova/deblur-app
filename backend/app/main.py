@@ -1,5 +1,6 @@
 """FastAPI application: settings, CORS, error handlers, routers, static files and startup."""
 
+import logging
 from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager, closing
@@ -14,6 +15,7 @@ from app.config import Settings
 from app.errors import ConflictError, InvalidInputError, NotFoundError, TooLargeError
 from app.repositories.jobs import JobRepository
 from app.routers import gallery, health, jobs, photos
+from app.services.photos import delete_old_photos
 
 ERROR_STATUS = {
     NotFoundError: 404,
@@ -30,11 +32,16 @@ def error_response(request: Request, exc: Exception) -> JSONResponse:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
+    # uvicorn sets up only its own loggers; this makes the app's log lines visible.
+    logging.basicConfig(
+        level=settings.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
     (settings.files_dir / "photos").mkdir(parents=True, exist_ok=True)
     (settings.files_dir / "results").mkdir(parents=True, exist_ok=True)
     with closing(db.connect(settings.db_path)) as conn:
         db.init_schema(conn)
         JobRepository(conn).fail_unfinished()
+        delete_old_photos(settings, conn)
     # One worker: a render already uses all cores (scipy FFT with workers=-1), so two renders
     # at once would not finish sooner, they would only slow each other down.
     app.state.executor = ThreadPoolExecutor(max_workers=1)

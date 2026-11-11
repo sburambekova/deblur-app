@@ -114,3 +114,12 @@ def test_unfinished_jobs_fail_after_restart(tmp_path):
     with TestClient(create_app(settings)) as client:
         job = client.get("/api/jobs/left-behind").json()
     assert (job["status"], job["error"]) == ("failed", "server restarted")
+
+
+def test_render_logs_one_line(client, caplog):
+    caplog.set_level("INFO", logger="app.services.render")
+    photo = upload(client, 120, 90)
+    job = wait_for(client, render(client, photo["id"], {"method": "rl", "iters": 5})["id"])
+    lines = [r.getMessage() for r in caplog.records if r.name == "app.services.render"]
+    assert len(lines) == 1
+    assert job["id"] in lines[0] and "rl, 120x90" in lines[0]

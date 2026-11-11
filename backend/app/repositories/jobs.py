@@ -28,6 +28,14 @@ class JobRepository:
             return None
         return dict(row, params=json.loads(row["params"]))
 
+    def ids_for_photo(self, photo_id: str) -> list[str]:
+        rows = self.conn.execute("SELECT id FROM jobs WHERE photo_id = ?", (photo_id,))
+        return [row["id"] for row in rows]
+
+    def delete_for_photo(self, photo_id: str) -> None:
+        self.conn.execute("DELETE FROM jobs WHERE photo_id = ?", (photo_id,))
+        self.conn.commit()
+
     def mark_running(self, job_id: str) -> None:
         self.conn.execute(
             "UPDATE jobs SET status = 'running', started_at = ? WHERE id = ?", (now(), job_id)
