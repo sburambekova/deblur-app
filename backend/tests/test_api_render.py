@@ -1,3 +1,4 @@
+import threading
 import time
 from contextlib import closing
 from io import BytesIO
@@ -114,3 +115,43 @@ def test_unfinished_jobs_fail_after_restart(tmp_path):
     with TestClient(create_app(settings)) as client:
         job = client.get("/api/jobs/left-behind").json()
     assert (job["status"], job["error"]) == ("failed", "server restarted")
+
+
+def test_render_logs_one_line(client, caplog):
+    caplog.set_level("INFO", logger="app.services.render")
+    photo = upload(client, 120, 90)
+    job = wait_for(client, render(client, photo["id"], {"method": "rl", "iters": 5})["id"])
+    lines = [r.getMessage() for r in caplog.records if r.name == "app.services.render"]
+    assert len(lines) == 1
+    assert job["id"] in lines[0] and "rl, 120x90" in lines[0]
+
+
+def test_full_queue_is_429(tmp_path, monkeypatch):
+    release = threading.Event()
+    real_deblur = pipeline.deblur
+
+    def blocked_deblur(*args, **kwargs):
+        release.wait(timeout=20)
+        return real_deblur(*args, **kwargs)
+
+    monkeypatch.setattr(pipeline, "deblur", blocked_deblur)
+    with TestClient(create_app(Settings(data_dir=tmp_path, max_queued_jobs=2))) as client:
+        photo = upload(client, 120, 90)
+        params = {"method": "tikhonov"}
+        running = render(client, photo["id"], params)
+        deadline = time.monotonic() + 10
+        while client.get(f"/api/jobs/{running['id']}").json()["status"] != "running":
+            assert time.monotonic() < deadline, "the first job never started"
+            time.sleep(0.01)
+        # The worker is busy, so these two wait in the queue and fill it.
+        waiting = [render(client, photo["id"], params) for _ in range(2)]
+
+        response = client.post(f"/api/photos/{photo['id']}/render", json=params)
+        assert response.status_code == 429
+        assert response.json() == {"detail": "Too many jobs, try again later"}
+
+        release.set()
+        for job in [running, *waiting]:
+            assert wait_for(client, job["id"])["status"] == "done"
+        # Once the queue has drained, renders are accepted again.
+        render(client, photo["id"], params)

@@ -1,5 +1,6 @@
 """Files on disk: where each image lives and how numpy arrays become image files and back."""
 
+import shutil
 from io import BytesIO
 from pathlib import Path
 
@@ -31,6 +32,13 @@ class FileStorage:
 
     def result_path(self, job_id: str) -> Path:
         return self.files_dir / "results" / f"{job_id}.jpg"
+
+    def delete_photo(self, photo_id: str, job_ids: list[str]) -> None:
+        """Delete the photo's folder and the results of its jobs; missing files are fine."""
+        if self.photo_dir(photo_id).exists():
+            shutil.rmtree(self.photo_dir(photo_id))
+        for job_id in job_ids:
+            self.result_path(job_id).unlink(missing_ok=True)
 
     def url_for(self, path: Path) -> str:
         return "/files/" + path.relative_to(self.files_dir).as_posix()

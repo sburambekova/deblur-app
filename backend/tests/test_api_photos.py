@@ -1,3 +1,5 @@
+from contextlib import closing
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 
 import numpy as np
@@ -5,8 +7,10 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from app import db
 from app.config import Settings
 from app.main import create_app
+from tests.test_api_render import render, wait_for
 
 
 def image_bytes(
@@ -105,3 +109,32 @@ def test_database_is_not_served(client, tmp_path):
     # The test client turns /files/../x into /x itself; an encoded slash reaches StaticFiles.
     for url in ["/files/..%2fdeblur.sqlite3", "/deblur.sqlite3"]:
         assert client.get(url).status_code == 404
+
+
+def test_old_photos_are_deleted_at_startup(tmp_path):
+    settings = Settings(data_dir=tmp_path)
+    with TestClient(create_app(settings)) as client:
+        old, kept, fresh = (upload(client, image_bytes(120, 90)).json() for _ in range(3))
+        old_job = wait_for(client, render(client, old["id"], {"method": "tikhonov"})["id"])
+        kept_job = wait_for(client, render(client, kept["id"], {"method": "tikhonov"})["id"])
+        assert client.post("/api/gallery", json={"job_id": kept_job["id"]}).status_code == 201
+
+    # Pretend `old` and `kept` were uploaded two days ago; `kept` is in the gallery.
+    two_days_ago = (datetime.now(UTC) - timedelta(hours=48)).isoformat()
+    with closing(db.connect(settings.db_path)) as conn:
+        conn.execute(
+            "UPDATE photos SET created_at = ? WHERE id IN (?, ?)",
+            (two_days_ago, old["id"], kept["id"]),
+        )
+        conn.commit()
+
+    with TestClient(create_app(settings)) as client:
+        assert client.get(f"/api/photos/{old['id']}").status_code == 404
+        assert client.get(f"/api/jobs/{old_job['id']}").status_code == 404
+        assert not (tmp_path / "files" / "photos" / old["id"]).exists()
+        assert not (tmp_path / "files" / "results" / f"{old_job['id']}.jpg").exists()
+
+        assert client.get(f"/api/photos/{kept['id']}").status_code == 200
+        assert client.get(kept_job["result_url"]).status_code == 200
+        assert len(client.get("/api/gallery").json()) == 1
+        assert client.get(f"/api/photos/{fresh['id']}").status_code == 200

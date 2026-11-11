@@ -1,8 +1,10 @@
 """Photos: upload (check the file, make the working images, remember the photo) and the live
 preview."""
 
+import logging
+import sqlite3
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from uuid import uuid4
 
@@ -14,8 +16,11 @@ from app.config import Settings
 from app.engine import kernels, pipeline, spectrum
 from app.errors import InvalidInputError, NotFoundError, TooLargeError
 from app.repositories.files import FileStorage
+from app.repositories.jobs import JobRepository
 from app.repositories.photos import PhotoRepository
 from app.schemas.params import DeblurParams
+
+logger = logging.getLogger(__name__)
 
 # Lets Pillow open HEIC, the default photo format of iPhones.
 register_heif_opener()
@@ -118,3 +123,20 @@ def square_spectrum(rgb: np.ndarray) -> np.ndarray:
     # blur on a 512 x 384 preview shows up at 37 degrees. In a square both axes are equal.
     square = Image.fromarray(spec).resize((SPECTRUM_SIZE, SPECTRUM_SIZE), Image.Resampling.BILINEAR)
     return np.asarray(square, dtype=np.float64)
+
+
+def delete_old_photos(settings: Settings, conn: sqlite3.Connection) -> None:
+    """Delete photos older than photo_ttl_hours with their jobs and results, unless a gallery
+    item uses them. Runs at startup, so the disk of a small server does not fill up."""
+    before = (datetime.now(UTC) - timedelta(hours=settings.photo_ttl_hours)).isoformat()
+    photos, jobs = PhotoRepository(conn), JobRepository(conn)
+    storage = FileStorage(settings.files_dir)
+    old = photos.list_old_not_in_gallery(before)
+    for photo_id in old:
+        job_ids = jobs.ids_for_photo(photo_id)
+        # Rows first: if deleting files fails, we are left with unused files, not with rows
+        # that point to missing files.
+        jobs.delete_for_photo(photo_id)
+        photos.delete(photo_id)
+        storage.delete_photo(photo_id, job_ids)
+    logger.info("Deleted %d photos older than %d h", len(old), settings.photo_ttl_hours)

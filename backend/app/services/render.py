@@ -10,7 +10,7 @@ from uuid import uuid4
 from app import db
 from app.config import Settings
 from app.engine import kernels, pipeline
-from app.errors import NotFoundError
+from app.errors import NotFoundError, TooManyJobsError
 from app.repositories.files import FileStorage
 from app.repositories.jobs import JobRepository
 from app.repositories.photos import PhotoRepository
@@ -41,6 +41,9 @@ class RenderService:
     def submit(self, photo_id: str, params: DeblurParams) -> dict:
         if self.photos.get(photo_id) is None:
             raise NotFoundError("Photo not found")
+        # The running job is not counted: only jobs still waiting for the worker.
+        if self.jobs.count_queued() >= self.settings.max_queued_jobs:
+            raise TooManyJobsError("Too many jobs, try again later")
         job_id = uuid4().hex
         self.jobs.create(job_id, photo_id, params.model_dump())
         self.executor.submit(run_job, self.settings, job_id)
@@ -60,18 +63,19 @@ def run_job(settings: Settings, job_id: str) -> None:
     with closing(db.connect(settings.db_path)) as conn:
         jobs = JobRepository(conn)
         jobs.mark_running(job_id)
-        start = time.perf_counter()
         try:
-            render(settings, conn, job_id)
+            seconds = render(settings, conn, job_id)
         # Any error must end up in the job, otherwise it would vanish with the thread.
         except Exception as exc:
             logger.exception("Render job %s failed", job_id)
             jobs.mark_failed(job_id, str(exc))
         else:
-            jobs.mark_done(job_id, time.perf_counter() - start)
+            jobs.mark_done(job_id, seconds)
 
 
-def render(settings: Settings, conn: sqlite3.Connection, job_id: str) -> None:
+def render(settings: Settings, conn: sqlite3.Connection, job_id: str) -> float:
+    """Deblur the full-size photo of the job and save the result; returns seconds taken."""
+    start = time.perf_counter()
     job = JobRepository(conn).get(job_id)
     photo = PhotoRepository(conn).get(job["photo_id"])
     storage = FileStorage(settings.files_dir)
@@ -83,3 +87,7 @@ def render(settings: Settings, conn: sqlite3.Connection, job_id: str) -> None:
     method_params = {name: p[name] for name in METHOD_PARAMS[p["method"]]}
     out = pipeline.deblur(full, psf, p["method"], **method_params)
     storage.write_jpeg(storage.result_path(job_id), out, RESULT_QUALITY)
+    seconds = time.perf_counter() - start
+    h, w = full.shape[:2]
+    logger.info("Render %s: %s, %dx%d, %.1f s", job_id, p["method"], w, h, seconds)
+    return seconds

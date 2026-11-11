@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     full_side: int = 1600
     preview_side: int = 512
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    log_level: str = "INFO"
+    # Photos older than this are deleted at startup, unless they are in the gallery.
+    photo_ttl_hours: int = 24
+    # Render jobs allowed to wait in the queue; one more gets 429. Protects a small server.
+    max_queued_jobs: int = 5
 
     @property
     def db_path(self) -> Path:

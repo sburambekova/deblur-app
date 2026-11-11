@@ -17,3 +17,14 @@ def test_openapi_lists_all_endpoints(client):
         "/api/gallery": {"get", "post"},
         "/api/gallery/{item_id}": {"delete"},
     }
+
+
+def test_every_endpoint_has_a_summary(client):
+    paths = client.get("/openapi.json").json()["paths"]
+    missing = [
+        f"{method.upper()} {path}"
+        for path, operations in paths.items()
+        for method, operation in operations.items()
+        if not operation.get("summary")
+    ]
+    assert missing == []
