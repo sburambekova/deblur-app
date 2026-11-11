@@ -1,6 +1,7 @@
 """FastAPI application: settings, CORS, error handlers, routers, static files and startup."""
 
 from collections.abc import AsyncIterator
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager, closing
 
 from fastapi import FastAPI, Request
@@ -11,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from app import db
 from app.config import Settings
 from app.errors import ConflictError, InvalidInputError, NotFoundError, TooLargeError
+from app.repositories.jobs import JobRepository
 from app.routers import gallery, health, jobs, photos
 
 ERROR_STATUS = {
@@ -32,7 +34,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     (settings.files_dir / "results").mkdir(parents=True, exist_ok=True)
     with closing(db.connect(settings.db_path)) as conn:
         db.init_schema(conn)
+        JobRepository(conn).fail_unfinished()
+    # One worker: a render already uses all cores (scipy FFT with workers=-1), so two renders
+    # at once would not finish sooner, they would only slow each other down.
+    app.state.executor = ThreadPoolExecutor(max_workers=1)
     yield
+    app.state.executor.shutdown(wait=False, cancel_futures=True)
 
 
 # A factory instead of a global app, so tests can build an app on a temporary data folder.
