@@ -9,6 +9,11 @@ from app.services.render import RenderService
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
-@router.get("/{job_id}", description="`result_url` is set only when `status` is `done`.")
+@router.get(
+    "/{job_id}",
+    summary="Get a render job",
+    description="`result_url` is set only when `status` is `done`.",
+    responses={404: {"description": "No such job"}},
+)
 def get_job(job_id: str, service: Annotated[RenderService, Depends(get_render_service)]) -> JobOut:
     return service.get(job_id)
