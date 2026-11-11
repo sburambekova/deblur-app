@@ -2,15 +2,17 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 
-from app.deps import get_photo_service
+from app.deps import get_photo_service, get_render_service
 from app.schemas.jobs import JobOut
 from app.schemas.params import DeblurParams
 from app.schemas.photos import PhotoOut
 from app.services.photos import PhotoService
+from app.services.render import RenderService
 
 router = APIRouter(prefix="/photos", tags=["photos"])
 
 Photos = Annotated[PhotoService, Depends(get_photo_service)]
+Renders = Annotated[RenderService, Depends(get_render_service)]
 
 
 @router.post("", status_code=201)
@@ -38,9 +40,14 @@ def preview_photo(photo_id: str, params: DeblurParams, service: Photos) -> Respo
     return Response(content=jpeg, media_type="image/jpeg", headers={"X-Compute-Ms": f"{ms:.1f}"})
 
 
-@router.post("/{photo_id}/render", status_code=202)
-def render_photo(photo_id: str, params: DeblurParams) -> JobOut:
-    raise HTTPException(501, "Not implemented yet")
+@router.post(
+    "/{photo_id}/render",
+    status_code=202,
+    description="Start a full-size render in the background. Poll GET /api/jobs/{job_id} "
+    "until `status` is `done` or `failed`. Lengths are in preview pixels, as for /preview.",
+)
+def render_photo(photo_id: str, params: DeblurParams, service: Renders) -> JobOut:
+    return service.submit(photo_id, params)
 
 
 @router.post("/{photo_id}/estimate", description="Automatic kernel estimation, planned for later.")
