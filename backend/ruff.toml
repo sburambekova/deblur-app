@@ -1,0 +1,8 @@
+# Used by `ruff check` and `ruff format`, locally and in CI.
+line-length = 100
+# An unchanged copy of the prototype, kept as the test reference: never lint or reformat it.
+extend-exclude = ["tests/reference"]
+
+[lint]
+# Long lines are not checked by default; the formatter cannot always shorten them itself.
+extend-select = ["E501"]
