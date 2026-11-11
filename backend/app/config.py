@@ -17,3 +17,8 @@ class Settings(BaseSettings):
     @property
     def db_path(self) -> Path:
         return self.data_dir / "deblur.sqlite3"
+
+    @property
+    def files_dir(self) -> Path:
+        """The only folder served as /files/..."""
+        return self.data_dir / "files"

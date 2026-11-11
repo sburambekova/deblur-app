@@ -1,20 +1,29 @@
-from fastapi import APIRouter, HTTPException, Response, UploadFile
+from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
+
+from app.deps import get_photo_service
 from app.schemas.jobs import JobOut
 from app.schemas.params import DeblurParams
 from app.schemas.photos import PhotoOut
+from app.services.photos import PhotoService
 
 router = APIRouter(prefix="/photos", tags=["photos"])
 
+Photos = Annotated[PhotoService, Depends(get_photo_service)]
+
 
 @router.post("", status_code=201)
-def upload_photo(file: UploadFile) -> PhotoOut:
-    raise HTTPException(501, "Not implemented yet")
+def upload_photo(file: UploadFile, service: Photos) -> PhotoOut:
+    # file.read() is async and would return a coroutine in a plain def endpoint.
+    # One byte over the limit is enough to know the file is too large.
+    data = file.file.read(service.max_bytes + 1)
+    return service.upload(data)
 
 
 @router.get("/{photo_id}")
-def get_photo(photo_id: str) -> PhotoOut:
-    raise HTTPException(501, "Not implemented yet")
+def get_photo(photo_id: str, service: Photos) -> PhotoOut:
+    return service.get(photo_id)
 
 
 @router.post(
