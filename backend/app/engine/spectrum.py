@@ -18,13 +18,15 @@ def to_gray(rgb: np.ndarray) -> np.ndarray:
 
 def log_spectrum(gray: np.ndarray) -> np.ndarray:
     """2D spectrum in [0, 1], zero frequency in the centre."""
+    # A one-colour image has nothing to show; the prototype returned NaN here (0 / 0).
+    # Checked on the input: the rounding error of the mean would otherwise leave tiny noise
+    # that the scaling below stretches to [0, 1].
+    if gray.max() == gray.min():
+        return np.zeros_like(gray)
     h, w = gray.shape
     # Without the Hann window the image borders give a bright cross through the centre that
     # hides the dark stripes left by the blur.
     window = np.outer(np.hanning(h), np.hanning(w))
     spec = np.log1p(np.abs(np.fft.fftshift(fft2((gray - gray.mean()) * window))))
     lo, hi = spec.min(), spec.max()
-    # A flat image has a flat spectrum. The prototype divided 0 by 0 here and returned NaN.
-    if hi == lo:
-        return np.zeros_like(spec)
     return (spec - lo) / (hi - lo)
