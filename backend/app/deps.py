@@ -9,8 +9,10 @@ from fastapi import Depends, Request
 from app import db
 from app.config import Settings
 from app.repositories.files import FileStorage
+from app.repositories.gallery import GalleryRepository
 from app.repositories.jobs import JobRepository
 from app.repositories.photos import PhotoRepository
+from app.services.gallery import GalleryService
 from app.services.photos import PhotoService
 from app.services.render import RenderService
 
@@ -45,4 +47,13 @@ def get_render_service(
         JobRepository(conn),
         FileStorage(settings.files_dir),
         request.app.state.executor,
+    )
+
+
+def get_gallery_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    conn: Annotated[sqlite3.Connection, Depends(get_db)],
+) -> GalleryService:
+    return GalleryService(
+        GalleryRepository(conn), JobRepository(conn), FileStorage(settings.files_dir)
     )
