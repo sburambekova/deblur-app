@@ -1,0 +1,9 @@
+# Not sent to docker build: the local venv alone is hundreds of MB, and local data or .env
+# must never end up in the image.
+.venv/
+data/
+.env
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+tests/
