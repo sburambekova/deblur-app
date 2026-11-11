@@ -1,0 +1,19 @@
+# The whole site on one server: `docker compose up -d --build` from the repository root.
+# For now only the backend; the frontend will be added as a second service.
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # The database and the images survive rebuilds and restarts of the container.
+      - deblur-data:/data
+    # Settings go here as DEBLUR_* variables (see backend/.env.example), for example the
+    # frontend's address in DEBLUR_CORS_ORIGINS once it is known.
+    # environment:
+    #   DEBLUR_CORS_ORIGINS: '["https://example.com"]'
+    # Start again after a crash or a reboot of the server.
+    restart: unless-stopped
+
+volumes:
+  deblur-data:
