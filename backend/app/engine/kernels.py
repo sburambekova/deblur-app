@@ -19,12 +19,12 @@ def motion_psf(length: float, angle: float) -> np.ndarray:
     psf = np.zeros((2 * half + 1, 2 * half + 1))
 
     # Each sample of the segment is split between its 4 nearest pixels (bilinear weights).
-    # Rounding samples to the nearest pixel gave the same jagged kernel for lengths 10.2 and 10.8.
+    # Rounding samples to the nearest pixel gave almost the same jagged kernel for 10.2 and 10.8.
     n = int(np.ceil(length)) * SAMPLES_PER_PX
     t = ((np.arange(n) + 0.5) / n - 0.5) * length
     a = np.deg2rad(angle)
     x = half + t * np.cos(a)
-    # Rows grow downwards, so counter-clockwise on screen means y goes down.
+    # Row indices grow downwards, so a counter-clockwise angle (up on screen) lowers the row index.
     y = half - t * np.sin(a)
     col, row = np.floor(x).astype(int), np.floor(y).astype(int)
     dx, dy = x - col, y - row

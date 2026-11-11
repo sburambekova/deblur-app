@@ -9,6 +9,11 @@ from app.engine.methods.tv import tv
 from tests.helpers import blurred_case, load_test_image
 from tests.reference import real_deblur_prototype as rd
 
+# Our motion and defocus kernels are point-symmetric, so their OTF is real and conj(otf) inside
+# the methods changes nothing. The random 5 x 9 kernel makes the comparison check conj as well.
+_random = np.random.default_rng(1).random((5, 9))
+METHOD_KERNELS = [rd.motion_psf(15, 30), rd.defocus_psf(5), _random / _random.sum()]
+
 
 def same(new: np.ndarray, old: np.ndarray) -> bool:
     # rtol=0: the default relative tolerance of allclose (1e-5) would make the check much weaker.
@@ -73,7 +78,7 @@ def test_make_psf():
 
 def test_tikhonov():
     img = np.random.default_rng(0).random((64, 48))
-    for psf in [rd.motion_psf(15, 30), rd.defocus_psf(5)]:
+    for psf in METHOD_KERNELS:
         for mu in [1e-6, 0.01, 0.1]:
             for penalty in ["L2", "H1"]:
                 new = tikhonov(img, psf, mu, penalty)
@@ -83,7 +88,7 @@ def test_tikhonov():
 def test_richardson_lucy():
     # Some values below 0, so the clipping of the input is compared too.
     img = np.random.default_rng(0).normal(0.5, 0.3, (64, 48))
-    for psf in [rd.motion_psf(15, 30), rd.defocus_psf(5)]:
+    for psf in METHOD_KERNELS:
         for iters in [1, 10, 30]:
             new = richardson_lucy(img, psf, iters)
             assert same(new, rd.richardson_lucy(img, psf, iters))
@@ -91,7 +96,7 @@ def test_richardson_lucy():
 
 def test_tv():
     img = np.random.default_rng(0).random((64, 48))
-    for psf in [rd.motion_psf(15, 30), rd.defocus_psf(5)]:
+    for psf in METHOD_KERNELS:
         for lam in [1e-5, 5e-4, 0.1]:
             for iters in [1, 50]:
                 new = tv(img, psf, lam, iters)

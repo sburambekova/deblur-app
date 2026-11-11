@@ -87,11 +87,11 @@ def test_spectrum_range(sharp):
     assert spec.min() == 0 and spec.max() == 1
 
 
-def test_spectrum_of_flat_image_has_no_nan():
+def test_spectrum_of_flat_image_is_zero():
     # Deliberate difference from the prototype, which returned NaN here (0 / 0).
-    assert np.array_equal(log_spectrum(np.zeros((32, 48))), np.zeros((32, 48)))
-    spec = log_spectrum(np.full((32, 48), 0.3))
-    assert not np.isnan(spec).any() and spec.min() >= 0 and spec.max() <= 1
+    # 179 / 255 on 384 x 512: the mean is off by a rounding error, which used to show as noise.
+    for value in [0, 0.3, 179 / 255]:
+        assert np.array_equal(log_spectrum(np.full((384, 512), value)), np.zeros((384, 512)))
 
 
 def test_to_gray():
