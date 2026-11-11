@@ -10,10 +10,15 @@ from fastapi.staticfiles import StaticFiles
 
 from app import db
 from app.config import Settings
-from app.errors import ConflictError, InvalidInputError, NotFoundError
+from app.errors import ConflictError, InvalidInputError, NotFoundError, TooLargeError
 from app.routers import gallery, health, jobs, photos
 
-ERROR_STATUS = {NotFoundError: 404, InvalidInputError: 400, ConflictError: 409}
+ERROR_STATUS = {
+    NotFoundError: 404,
+    InvalidInputError: 400,
+    ConflictError: 409,
+    TooLargeError: 413,
+}
 
 
 def error_response(request: Request, exc: Exception) -> JSONResponse:

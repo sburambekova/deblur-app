@@ -12,3 +12,7 @@ class InvalidInputError(Exception):
 
 class ConflictError(Exception):
     """The request does not fit the current state, e.g. the job is not done yet (409)."""
+
+
+class TooLargeError(Exception):
+    """The uploaded file is larger than the limit (413)."""
