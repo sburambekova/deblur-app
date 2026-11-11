@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     # Photos older than this are deleted at startup, unless they are in the gallery.
     photo_ttl_hours: int = 24
+    # Render jobs allowed to wait in the queue; one more gets 429. Protects a small server.
+    max_queued_jobs: int = 5
 
     @property
     def db_path(self) -> Path:

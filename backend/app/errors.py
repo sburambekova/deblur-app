@@ -16,3 +16,7 @@ class ConflictError(Exception):
 
 class TooLargeError(Exception):
     """The uploaded file is larger than the limit (413)."""
+
+
+class TooManyJobsError(Exception):
+    """Too many render jobs are waiting in the queue (429)."""

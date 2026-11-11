@@ -12,7 +12,13 @@ from fastapi.staticfiles import StaticFiles
 
 from app import db
 from app.config import Settings
-from app.errors import ConflictError, InvalidInputError, NotFoundError, TooLargeError
+from app.errors import (
+    ConflictError,
+    InvalidInputError,
+    NotFoundError,
+    TooLargeError,
+    TooManyJobsError,
+)
 from app.repositories.jobs import JobRepository
 from app.routers import gallery, health, jobs, photos
 from app.services.photos import delete_old_photos
@@ -22,6 +28,7 @@ ERROR_STATUS = {
     InvalidInputError: 400,
     ConflictError: 409,
     TooLargeError: 413,
+    TooManyJobsError: 429,
 }
 
 

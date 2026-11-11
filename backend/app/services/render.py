@@ -10,7 +10,7 @@ from uuid import uuid4
 from app import db
 from app.config import Settings
 from app.engine import kernels, pipeline
-from app.errors import NotFoundError
+from app.errors import NotFoundError, TooManyJobsError
 from app.repositories.files import FileStorage
 from app.repositories.jobs import JobRepository
 from app.repositories.photos import PhotoRepository
@@ -41,6 +41,9 @@ class RenderService:
     def submit(self, photo_id: str, params: DeblurParams) -> dict:
         if self.photos.get(photo_id) is None:
             raise NotFoundError("Photo not found")
+        # The running job is not counted: only jobs still waiting for the worker.
+        if self.jobs.count_queued() >= self.settings.max_queued_jobs:
+            raise TooManyJobsError("Too many jobs, try again later")
         job_id = uuid4().hex
         self.jobs.create(job_id, photo_id, params.model_dump())
         self.executor.submit(run_job, self.settings, job_id)

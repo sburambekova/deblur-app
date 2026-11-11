@@ -28,6 +28,9 @@ class JobRepository:
             return None
         return dict(row, params=json.loads(row["params"]))
 
+    def count_queued(self) -> int:
+        return self.conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'queued'").fetchone()[0]
+
     def ids_for_photo(self, photo_id: str) -> list[str]:
         rows = self.conn.execute("SELECT id FROM jobs WHERE photo_id = ?", (photo_id,))
         return [row["id"] for row in rows]
