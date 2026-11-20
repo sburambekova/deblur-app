@@ -1,0 +1,799 @@
+/* "Mono": neutral near-black, white controls. The photo is the only colour on screen. */
+:root {
+  --bg: #0c0c0d;
+  --stage: #000;
+  --surface: #17171a;
+  --seg: #1a1a1d;
+  --border: #3a3a40;
+  --border-strong: #5a5a62;
+  --rail: #34343a;
+  --text: #f4f4f5;
+  --text-2: #b9b9c0;
+  --muted: #8e8e96;
+  --accent: #f4f4f5;
+  --on-accent: #0c0c0d;
+  --chip: rgba(0, 0, 0, 0.72);
+  --danger: #ff8f87;
+  --radius: 12px;
+  --radius-sm: 10px;
+  --font: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Space Grotesk', var(--font);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Layout: one column, phone first. The editor gets its own layout on wide screens. */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: max(8px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* The main button stays in reach while the page scrolls under it. */
+.sticky-bottom {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0 max(20px, env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+
+.screen:has(> .sticky-bottom) {
+  padding-bottom: 0;
+}
+
+/* Top bar */
+
+.bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 52px;
+}
+
+.bar__side {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.bar__side--end {
+  justify-content: flex-end;
+}
+
+.bar__title {
+  margin: 0;
+  font: 600 19px/1.2 var(--font-display);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font: 600 22px/1 var(--font-display);
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+
+.link-inline {
+  color: var(--text);
+  font-weight: 500;
+  text-underline-offset: 4px;
+}
+
+/* Text */
+
+.title {
+  margin: 0;
+  font: 600 28px/1.15 var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.title--hero {
+  font-size: 34px;
+  line-height: 1.1;
+}
+
+.lead {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.note,
+.fine {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.fine {
+  text-align: center;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error {
+  margin: 0;
+  font-size: 15px;
+  color: var(--danger);
+}
+
+.empty {
+  margin: 48px 0 0;
+  text-align: center;
+  color: var(--text-2);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Buttons */
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 56px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: 17px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn--secondary {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.btn--text {
+  height: 44px;
+  background: none;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 500;
+  text-underline-offset: 4px;
+}
+
+.btn-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+/* Before / after. The frame has the photo's proportions (--aspect, set by the component) and
+   is as wide as fits, but no taller than --max-h. */
+
+.compare,
+.stage {
+  --max-h: 62vh;
+  position: relative;
+  flex-shrink: 0;
+  width: min(100%, calc(var(--max-h) * var(--aspect, 1)));
+  margin-inline: auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--stage);
+}
+
+.compare {
+  cursor: ew-resize;
+  /* Vertical swipes still scroll the page; horizontal ones move the divider. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.compare__img,
+.stage__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.stage__img {
+  opacity: 0.45;
+}
+
+.compare__line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+.compare__handle {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+}
+
+.stage__status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.chip {
+  position: absolute;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--chip);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.chip--tl {
+  top: 12px;
+  left: 12px;
+}
+
+.chip--bl {
+  bottom: 12px;
+  left: 12px;
+}
+
+.chip--br {
+  right: 12px;
+  bottom: 12px;
+}
+
+.chip--sm {
+  bottom: 8px;
+  left: 8px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+/* Indeterminate progress: a render reports no percentage. */
+
+.progress {
+  position: relative;
+  width: 160px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.progress::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: slide 1.2s ease-in-out infinite;
+}
+
+.progress--edge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  border-radius: 0;
+}
+
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress::after {
+    width: 100%;
+    opacity: 0.5;
+    animation: none;
+  }
+}
+
+.uploading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 15px;
+}
+
+.uploading .progress {
+  width: 100%;
+}
+
+/* Controls */
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seg {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--seg);
+}
+
+.seg__btn {
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.seg__btn[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.slider__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 15px;
+}
+
+.slider__head label {
+  color: var(--text-2);
+}
+
+.slider__head output {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The fill follows --fill (0..1), set by Slider. 10px is half the thumb: the thumb's centre
+   travels from 10px to 100% - 10px. */
+.range {
+  --fill: 0;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.range:focus-visible {
+  outline: none;
+}
+
+.range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--accent) calc(10px + (100% - 20px) * var(--fill)),
+    var(--rail) 0
+  );
+}
+
+.range::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--bg);
+  -webkit-appearance: none;
+}
+
+.range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rail);
+}
+
+.range::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+
+.range:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+/* 16px text: iOS zooms into inputs with anything smaller. */
+.input {
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 16px;
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+/* Only with a mouse: on a touch screen :hover sticks to whatever was tapped last. */
+@media (hover: hover) {
+  .link:hover,
+  .btn--text:hover {
+    text-decoration: underline;
+  }
+
+  .btn--primary:hover {
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12);
+  }
+
+  .btn--secondary:hover,
+  .icon-btn:hover {
+    border-color: var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .seg__btn[aria-pressed='false']:hover {
+    color: var(--text);
+  }
+
+  .input:hover {
+    border-color: var(--border-strong);
+  }
+}
+
+.spectrum {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+}
+
+.spectrum__frame {
+  position: relative;
+  flex-shrink: 0;
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.spectrum__frame img,
+.spectrum__frame svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.spectrum__halo,
+.spectrum__ink {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.spectrum__halo {
+  stroke: rgba(0, 0, 0, 0.6);
+  stroke-width: 4px;
+}
+
+.spectrum__ink {
+  stroke: var(--accent);
+  stroke-width: 1.5px;
+}
+
+.spectrum figcaption {
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+/* Home */
+
+.home {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.home__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home__text .btn-stack {
+  margin-top: 16px;
+}
+
+/* Gallery */
+
+.screen--gallery {
+  max-width: 1200px;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 28px 24px;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pair figure {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--stage);
+}
+
+.pair img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.card__text {
+  min-width: 0;
+}
+
+.card__title {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.card__meta {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Wide screens */
+
+.desk {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 8px clamp(16px, 4vw, 48px) 48px;
+}
+
+.desk__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 32px 48px;
+}
+
+.desk__stage {
+  flex: 999 1 560px;
+  min-width: 0;
+}
+
+.desk__stage .compare {
+  --max-h: calc(100vh - 100px);
+}
+
+/* Everything on one phone screen, so the preview stays in view while a slider moves. 590px is
+   the rest of the screen (top bar, controls, Sharpen and the gaps), measured at 390 x 844.
+   Below 200px the preview is too small to judge, so short phones scroll instead. */
+.screen--adjust .compare {
+  --max-h: max(200px, calc(100dvh - 590px));
+}
+
+.desk__panel {
+  display: flex;
+  flex: 1 1 340px;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  max-width: 420px;
+}
+
+@media (min-width: 960px) {
+  .screen--home {
+    max-width: 1120px;
+  }
+
+  .home {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
+    align-items: center;
+    gap: 64px;
+    padding: 24px 0;
+  }
+
+  .home .compare {
+    --max-h: calc(100vh - 140px);
+  }
+
+  .home__text {
+    flex: none;
+  }
+
+  .home__text .spacer {
+    display: none;
+  }
+
+  .title--hero {
+    font-size: 44px;
+  }
+
+  .screen--gallery .sticky-bottom {
+    align-items: center;
+  }
+
+  .screen--gallery .sticky-bottom .btn {
+    max-width: 360px;
+  }
+}
