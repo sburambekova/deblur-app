@@ -1,0 +1,3 @@
+# Not sent to docker build: the image installs its own node_modules and builds its own dist.
+node_modules/
+dist/
