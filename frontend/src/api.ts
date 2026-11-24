@@ -1,7 +1,7 @@
 /** Calls to the backend. Vite (in development) and nginx (in production) pass /api and /files on
  * to the backend, so every path here is relative to the page. Types follow backend/app/schemas. */
 
-import type { DeblurParams } from './params';
+import type { DeblurParams, Kernel } from './params';
 
 export interface Photo {
   id: string;
@@ -37,6 +37,14 @@ export interface GalleryItem {
   caption: string | null;
   params: DeblurParams;
   created_at: string;
+}
+
+/** The kernel guessed for the Auto button. Only the fields of that kernel are set. */
+export interface Estimate {
+  kernel: Kernel;
+  length: number | null;
+  angle: number | null;
+  radius: number | null;
 }
 
 export class ApiError extends Error {
@@ -103,6 +111,15 @@ export async function fetchPreview(
 ): Promise<{ blob: Blob; ms: number }> {
   const res = await send(`/api/photos/${photoId}/preview`, asJson(params, signal));
   return { blob: await res.blob(), ms: Number(res.headers.get('X-Compute-Ms')) };
+}
+
+export async function estimateKernel(photoId: string, kernel: Kernel): Promise<Estimate> {
+  const res = await send(`/api/photos/${photoId}/estimate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kernel }),
+  });
+  return res.json();
 }
 
 export async function startRender(photoId: string, params: DeblurParams): Promise<Job> {

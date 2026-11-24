@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, Response, UploadFile
 
 from app.deps import get_photo_service, get_render_service
+from app.schemas.estimate import EstimateIn, EstimateOut
 from app.schemas.jobs import JobOut
 from app.schemas.params import DeblurParams
 from app.schemas.photos import PhotoOut
@@ -67,9 +68,11 @@ def render_photo(photo_id: str, params: DeblurParams, service: Renders) -> JobOu
 
 @router.post(
     "/{photo_id}/estimate",
-    summary="Estimate the blur kernel (not implemented yet)",
-    description="Automatic kernel estimation, planned for later.",
-    responses={501: {"description": "Not implemented yet"}},
+    summary="Estimate the blur kernel",
+    description="Guess the blur of the given type from the cepstrum of the preview, for the Auto "
+    "button. Lengths are in preview pixels, as for /preview. It is a starting point: a curved "
+    "hand shake or strong texture can mislead it, so check the kernel on the spectrum.",
+    responses=NO_PHOTO,
 )
-def estimate_kernel(photo_id: str) -> None:
-    raise HTTPException(501, "Not implemented yet")
+def estimate_kernel(photo_id: str, body: EstimateIn, service: Photos) -> EstimateOut:
+    return service.estimate(photo_id, body.kernel)

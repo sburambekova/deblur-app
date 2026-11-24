@@ -3,6 +3,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import {
   ApiError,
   addToGallery,
+  estimateKernel,
   getPhoto,
   messageOf,
   startRender,
@@ -10,7 +11,7 @@ import {
   type Photo,
 } from '../api';
 import { Compare } from '../components/Compare';
-import { KernelControls, MethodControls, Spectrum } from '../components/Controls';
+import { AutoButton, KernelControls, MethodControls, Spectrum } from '../components/Controls';
 import { Download } from '../components/icons';
 import { BackLink, Brand, GalleryLink, TopBar } from '../components/TopBar';
 import { useJob, useMediaQuery, usePreview, type Preview } from '../hooks';
@@ -45,6 +46,9 @@ interface ViewProps {
   error: string | null;
   starting: boolean;
   sharpen: () => void;
+  auto: () => void;
+  autoBusy: boolean;
+  autoNote: boolean;
 }
 
 /** Adjusting a photo and rendering it. On a phone these are two screens: a job in the URL
@@ -58,6 +62,9 @@ export function Editor({ photoId, jobId }: { photoId: string; jobId: string | nu
   const { job, error: jobError } = useJob(jobId);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoError, setAutoError] = useState<string | null>(null);
+  const [autoNote, setAutoNote] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -78,8 +85,28 @@ export function Editor({ photoId, jobId }: { photoId: string; jobId: string | nu
 
   function update(patch: Partial<DeblurParams>) {
     setParams((p) => ({ ...p, ...patch }));
+    setAutoNote(false);
     // The render on screen was made with the old settings: go back to the live preview.
     if (jobId) navigate(paths.photo(photoId), { replace: true });
+  }
+
+  async function auto() {
+    setAutoBusy(true);
+    setAutoError(null);
+    try {
+      const est = await estimateKernel(photoId, params.kernel);
+      update(
+        est.kernel === 'motion'
+          ? { length: est.length ?? params.length, angle: est.angle ?? params.angle }
+          : { radius: est.radius ?? params.radius },
+      );
+      // After update, which hides the note on every manual change.
+      setAutoNote(true);
+    } catch (err) {
+      setAutoError(messageOf(err));
+    } finally {
+      setAutoBusy(false);
+    }
   }
 
   async function sharpen() {
@@ -116,9 +143,12 @@ export function Editor({ photoId, jobId }: { photoId: string; jobId: string | nu
     pending,
     jobId,
     job,
-    error: startError ?? jobError ?? previewError,
+    error: startError ?? autoError ?? jobError ?? previewError,
     starting,
     sharpen,
+    auto,
+    autoBusy,
+    autoNote,
   };
   if (wide) return <DesktopEditor {...view} />;
   return jobId ? <MobileResult {...view} /> : <MobileAdjust {...view} />;
@@ -129,7 +159,11 @@ function MobileAdjust(v: ViewProps) {
     <div className="screen screen--adjust">
       <TopBar left={<BackLink href={paths.home} />} title="Adjust" right={<GalleryLink />} />
       <PreviewStage {...v} working={false} />
-      <KernelControls params={v.params} update={v.update} />
+      <KernelControls
+        params={v.params}
+        update={v.update}
+        autoNote={v.autoNote}
+      />
       <MethodControls params={v.params} update={v.update} />
       <div className="spacer" />
       <div className="sticky-bottom">
@@ -138,9 +172,12 @@ function MobileAdjust(v: ViewProps) {
             {v.error}
           </p>
         )}
-        <button className="btn btn--primary" onClick={v.sharpen} disabled={v.starting}>
-          Sharpen
-        </button>
+        <div className="btn-row">
+          <AutoButton onClick={v.auto} busy={v.autoBusy} />
+          <button className="btn btn--primary" onClick={v.sharpen} disabled={v.starting}>
+            Sharpen
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -225,7 +262,11 @@ function DesktopEditor(v: ViewProps) {
           )}
         </div>
         <aside className="desk__panel">
-          <KernelControls params={params} update={update} />
+          <KernelControls
+            params={params}
+            update={update}
+            autoNote={v.autoNote}
+          />
           <Spectrum src={photo.spectrum_url} params={params} />
           <MethodControls params={params} update={update} />
           {job?.status === 'failed' && (
@@ -238,6 +279,7 @@ function DesktopEditor(v: ViewProps) {
             </p>
           )}
           <div className="btn-row">
+            <AutoButton onClick={v.auto} busy={v.autoBusy} />
             <button
               className="btn btn--primary"
               onClick={v.sharpen}

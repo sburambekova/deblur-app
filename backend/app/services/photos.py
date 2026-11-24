@@ -1,5 +1,5 @@
-"""Photos: upload (check the file, make the working images, remember the photo) and the live
-preview."""
+"""Photos: upload (check the file, make the working images, remember the photo), the live
+preview and the kernel estimate for the Auto button."""
 
 import logging
 import sqlite3
@@ -13,11 +13,12 @@ from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 
 from app.config import Settings
-from app.engine import kernels, pipeline, spectrum
+from app.engine import estimate, kernels, pipeline, spectrum
 from app.errors import InvalidInputError, NotFoundError, TooLargeError
 from app.repositories.files import FileStorage
 from app.repositories.jobs import JobRepository
 from app.repositories.photos import PhotoRepository
+from app.schemas.estimate import EstimateOut
 from app.schemas.params import DeblurParams
 
 logger = logging.getLogger(__name__)
@@ -105,6 +106,20 @@ class PhotoService:
         out = pipeline.deblur(rgb, psf, "tikhonov", mu=p["mu"], penalty=p["penalty"])
         jpeg = self.storage.encode_jpeg(out, PREVIEW_QUALITY)
         return jpeg, (time.perf_counter() - start) * 1000
+
+    def estimate(self, photo_id: str, kernel: str) -> EstimateOut:
+        """Kernel guessed from the preview, in preview pixels like the sliders."""
+        if self.photos.get(photo_id) is None:
+            raise NotFoundError("Photo not found")
+        gray = spectrum.to_gray(self.storage.read_rgb(self.storage.preview_path(photo_id)))
+        # Rounded to the slider steps and kept inside the API's ranges (schemas/params.py).
+        if kernel == "motion":
+            length, angle = estimate.estimate_motion(gray)
+            return EstimateOut(
+                kernel="motion", length=min(max(round(length), 1), 60), angle=round(angle) % 180
+            )
+        radius = estimate.estimate_defocus(gray)
+        return EstimateOut(kernel="defocus", radius=min(max(round(radius * 2) / 2, 0.5), 25))
 
     def with_urls(self, photo: dict) -> dict:
         url = self.storage.url_for

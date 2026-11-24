@@ -56,3 +56,22 @@ export const Trash = () => (
     <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
   </Icon>
 );
+
+export const ChevronRight = () => (
+  <Icon>
+    <path d="M9 6l6 6-6 6" />
+  </Icon>
+);
+
+export const Close = () => (
+  <Icon>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </Icon>
+);
+
+export const Wand = () => (
+  <Icon>
+    <path d="M4 20L15 9M13 7l4 4" />
+    <path d="M18 2.5v3M16.5 4h3M20.5 9v2M19.5 10h2M9.5 3v2M8.5 4h2" />
+  </Icon>
+);
