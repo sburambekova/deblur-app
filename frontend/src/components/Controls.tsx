@@ -9,6 +9,7 @@ import {
   type Method,
 } from '../params';
 import { SPECTRUM_SIZE, defocusRing, motionOverlay, type Segment } from '../spectrum';
+import { Wand } from './icons';
 import { Segmented, Slider } from './Inputs';
 
 interface Props {
@@ -27,8 +28,13 @@ const METHODS: { value: Method; label: string }[] = [
   { value: 'rl', label: 'R-L' },
 ];
 
+interface KernelProps extends Props {
+  /** Auto has just set the sliders: say that it is a guess. */
+  autoNote: boolean;
+}
+
 /** Blur type and its size. Ranges are the API's (backend/app/schemas/params.py). */
-export function KernelControls({ params, update }: Props) {
+export function KernelControls({ params, update, autoNote }: KernelProps) {
   return (
     <div className="controls">
       <Segmented
@@ -72,7 +78,30 @@ export function KernelControls({ params, update }: Props) {
           onChange={(radius) => update({ radius })}
         />
       )}
+      {autoNote && (
+        <p className="note">
+          Auto guessed the blur from the photo. It can be off: adjust the sliders if the preview
+          looks wrong.
+        </p>
+      )}
     </div>
+  );
+}
+
+/** Guesses the size of the chosen blur type from the photo. Sits next to Sharpen. */
+export function AutoButton({ onClick, busy }: { onClick: () => void; busy: boolean }) {
+  return (
+    <button
+      type="button"
+      className="btn btn--auto"
+      onClick={onClick}
+      disabled={busy}
+      aria-busy={busy}
+      title="Guess the blur from the photo's spectrum"
+    >
+      <Wand />
+      Auto
+    </button>
   );
 }
 

@@ -5,20 +5,21 @@ import { useSyncExternalStore } from 'react';
 export type Route =
   | { name: 'home' }
   | { name: 'editor'; photoId: string; jobId: string | null }
-  | { name: 'gallery' };
+  | { name: 'gallery'; itemId: string | null };
 
 export const paths = {
   home: '#/',
   gallery: '#/gallery',
+  galleryItem: (itemId: string) => `#/gallery/${itemId}`,
   photo: (photoId: string) => `#/photo/${photoId}`,
   job: (photoId: string, jobId: string) => `#/photo/${photoId}/job/${jobId}`,
 };
 
 export function parseRoute(hash: string): Route {
-  const [first, photoId, jobWord, jobId] = hash.replace(/^#\/?/, '').split('/');
-  if (first === 'gallery') return { name: 'gallery' };
-  if (first === 'photo' && photoId) {
-    return { name: 'editor', photoId, jobId: jobWord === 'job' && jobId ? jobId : null };
+  const [first, id, jobWord, jobId] = hash.replace(/^#\/?/, '').split('/');
+  if (first === 'gallery') return { name: 'gallery', itemId: id || null };
+  if (first === 'photo' && id) {
+    return { name: 'editor', photoId: id, jobId: jobWord === 'job' && jobId ? jobId : null };
   }
   return { name: 'home' };
 }
