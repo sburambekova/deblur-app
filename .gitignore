@@ -4,6 +4,7 @@
 
 # Markdown files stay local for now
 *.md
+!/README.md
 !frontend/README.md
 
 # Results of tests on real photos: large images, kept locally
